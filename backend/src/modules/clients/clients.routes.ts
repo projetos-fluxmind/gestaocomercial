@@ -5,6 +5,28 @@ import { requireAuth } from '../../middleware/auth';
 
 export const clientsRouter = Router();
 
+const MASK = '***';
+
+async function getClientIdsWithClosedSaleBySalesperson(companyId: string, salespersonId: string): Promise<Set<string>> {
+  const res = await pool.query(
+    `select distinct c.id from clients c
+     join vehicles v on v.client_id = c.id and v.company_id = c.company_id
+     join sales s on s.vehicle_id = v.id and s.company_id = c.company_id
+     where c.company_id = $1 and s.salesperson_id = $2 and s.status = 'closed'`,
+    [companyId, salespersonId]
+  );
+  return new Set(res.rows.map((r) => r.id));
+}
+
+function maskClientRow(row: any): any {
+  return {
+    ...row,
+    email: row.email != null ? MASK : null,
+    phone: row.phone != null ? MASK : null,
+    document: row.document != null ? MASK : null,
+  };
+}
+
 const createClientSchema = z.object({
   name: z.string().min(1),
   email: z.string().email().optional(),
@@ -39,7 +61,36 @@ clientsRouter.get('/companies/:companyId/clients', requireAuth, async (req, res,
       params
     );
 
-    return res.json({ data: result.rows, page: Number(req.query.page ?? 1), limit });
+    let rows = result.rows;
+    if (req.auth!.role === 'salesperson') {
+      const maskSet = await getClientIdsWithClosedSaleBySalesperson(companyId, req.auth!.user_id);
+      rows = rows.map((r) => (maskSet.has(r.id) ? maskClientRow(r) : r));
+    }
+
+    return res.json({ data: rows, page: Number(req.query.page ?? 1), limit });
+  } catch (e) {
+    next(e);
+  }
+});
+
+clientsRouter.get('/companies/:companyId/clients/:id', requireAuth, async (req, res, next) => {
+  try {
+    const companyId = req.params.companyId;
+    const clientId = String(req.params.id ?? '');
+    if (companyId !== req.auth!.company_id) return res.status(403).json({ code: 'FORBIDDEN', message: 'Tenant inválido' });
+
+    const result = await pool.query(
+      'select id, name, email, phone, document, status, created_by, created_at from clients where id = $1 and company_id = $2',
+      [clientId, companyId]
+    );
+    if (!result.rowCount) return res.status(404).json({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
+
+    let row = result.rows[0];
+    if (req.auth!.role === 'salesperson') {
+      const maskSet = await getClientIdsWithClosedSaleBySalesperson(companyId, req.auth!.user_id);
+      if (maskSet.has(clientId)) row = maskClientRow(row);
+    }
+    return res.json(row);
   } catch (e) {
     next(e);
   }

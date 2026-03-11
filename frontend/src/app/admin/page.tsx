@@ -49,6 +49,7 @@ export default function AdminDashboard() {
         <div className="mt-6 grid gap-3 md:grid-cols-4">
           <Nav href="/admin/plans" title="Planos" />
           <Nav href="/admin/sales" title="Vendas" />
+          <Nav href="/admin/goals" title="Metas" />
           <Nav href="/admin/commissions" title="Comissões" />
           <Nav href="/admin/ranking" title="Ranking" />
         </div>

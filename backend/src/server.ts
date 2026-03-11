@@ -13,6 +13,9 @@ import { salesRouter } from './modules/sales/sales.routes';
 import { commissionsRouter } from './modules/commissions/commissions.routes';
 import { leaderboardRouter } from './modules/leaderboard/leaderboard.routes';
 import { analyticsRouter } from './modules/analytics/analytics.routes';
+import { goalsRouter } from './modules/goals/goals.routes';
+import { activitiesRouter } from './modules/activities/activities.routes';
+import { achievementsRouter } from './modules/gamification/achievements.routes';
 
 const app = express();
 
@@ -43,6 +46,9 @@ app.use('/api', salesRouter);
 app.use('/api', commissionsRouter);
 app.use('/api', leaderboardRouter);
 app.use('/api', analyticsRouter);
+app.use('/api', goalsRouter);
+app.use('/api', activitiesRouter);
+app.use('/api', achievementsRouter);
 
 app.use(errorHandler);
 

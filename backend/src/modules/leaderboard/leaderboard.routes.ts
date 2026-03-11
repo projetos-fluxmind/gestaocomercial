@@ -4,6 +4,7 @@ import { pool } from '../../db/pool';
 import { requireAuth } from '../../middleware/auth';
 import { requireRole } from '../../middleware/rbac';
 import { generateRanking, type SellerMetrics } from '../../engines/ranking-algorithm';
+import { getUnlockedCodes, runUnlockCheck } from '../gamification/achievements.service';
 
 export const leaderboardRouter = Router();
 
@@ -156,6 +157,19 @@ leaderboardRouter.post(
       } catch (e) {
         await pool.query('rollback');
         throw e;
+      }
+
+      if (ranking.length > 0) {
+        const first = ranking[0]!;
+        const alreadyUnlocked = await getUnlockedCodes(companyId, first.user_id);
+        await runUnlockCheck({
+          company_id: companyId,
+          user_id: first.user_id,
+          already_unlocked: alreadyUnlocked,
+          sales_this_month: first.metrics.sales_count,
+          is_first_sale_ever: false,
+          rank_position_this_month: 1,
+        });
       }
 
       return res.json({ period_type, period_key, data: ranking });

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../../db/pool';
 import { requireAuth } from '../../middleware/auth';
 import { calculateCommission } from '../../engines/commission-engine';
+import { getUnlockedCodes, runUnlockCheck } from '../gamification/achievements.service';
 
 export const salesRouter = Router();
 
@@ -124,6 +125,29 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
         [companyId, sale.id, sale.salesperson_id, computed.amount, JSON.stringify(computed.rules_applied)]
       );
       commission = commissionRes.rows[0];
+
+      const closedAtDate = sale.closed_at ? new Date(sale.closed_at) : new Date();
+      const monthStart = new Date(closedAtDate);
+      monthStart.setUTCDate(1);
+      monthStart.setUTCHours(0, 0, 0, 0);
+      const monthEnd = new Date(monthStart);
+      monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+      const salesThisMonthRes = await pool.query(
+        `select count(*)::int as c from sales where company_id = $1 and salesperson_id = $2 and status = 'closed' and closed_at >= $3 and closed_at < $4`,
+        [companyId, sale.salesperson_id, monthStart, monthEnd]
+      );
+      const firstSaleRes = await pool.query(
+        `select count(*)::int as c from sales where company_id = $1 and salesperson_id = $2 and status = 'closed'`,
+        [companyId, sale.salesperson_id]
+      );
+      const alreadyUnlocked = await getUnlockedCodes(companyId, sale.salesperson_id);
+      await runUnlockCheck({
+        company_id: companyId,
+        user_id: sale.salesperson_id,
+        already_unlocked: alreadyUnlocked,
+        sales_this_month: Number(salesThisMonthRes.rows[0].c ?? 0),
+        is_first_sale_ever: Number(firstSaleRes.rows[0].c ?? 0) <= 1,
+      });
     }
 
     return res.status(201).json({ sale, commission });
