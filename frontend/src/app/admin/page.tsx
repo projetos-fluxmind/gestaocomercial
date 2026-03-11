@@ -46,6 +46,13 @@ export default function AdminDashboard() {
           <Card title="Conversão" value="—" />
         </div>
 
+        <div className="mt-6 grid gap-3 md:grid-cols-4">
+          <Nav href="/admin/plans" title="Planos" />
+          <Nav href="/admin/sales" title="Vendas" />
+          <Nav href="/admin/commissions" title="Comissões" />
+          <Nav href="/admin/ranking" title="Ranking" />
+        </div>
+
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Sessão</h2>
           {error ? (
@@ -67,6 +74,17 @@ function Card(props: { title: string; value: string }) {
       <div className="text-sm text-zinc-600 dark:text-zinc-400">{props.title}</div>
       <div className="mt-2 text-2xl font-semibold">{props.value}</div>
     </div>
+  );
+}
+
+function Nav(props: { href: string; title: string }) {
+  return (
+    <a
+      href={props.href}
+      className="rounded-2xl border bg-white p-4 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+    >
+      {props.title}
+    </a>
   );
 }
 

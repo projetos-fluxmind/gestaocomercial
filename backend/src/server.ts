@@ -8,6 +8,11 @@ import { authRouter } from './modules/auth/auth.routes';
 import { usersRouter } from './modules/users/users.routes';
 import { clientsRouter } from './modules/clients/clients.routes';
 import { vehiclesRouter } from './modules/vehicles/vehicles.routes';
+import { plansRouter } from './modules/plans/plans.routes';
+import { salesRouter } from './modules/sales/sales.routes';
+import { commissionsRouter } from './modules/commissions/commissions.routes';
+import { leaderboardRouter } from './modules/leaderboard/leaderboard.routes';
+import { analyticsRouter } from './modules/analytics/analytics.routes';
 
 const app = express();
 
@@ -33,6 +38,11 @@ app.use('/api/auth', authRouter);
 app.use('/api', usersRouter);
 app.use('/api', clientsRouter);
 app.use('/api', vehiclesRouter);
+app.use('/api', plansRouter);
+app.use('/api', salesRouter);
+app.use('/api', commissionsRouter);
+app.use('/api', leaderboardRouter);
+app.use('/api', analyticsRouter);
 
 app.use(errorHandler);
 
