@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, Client, UserMe } from '@/lib/types';
 
 export default function AdminClientsPage() {
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,35 +14,36 @@ export default function AdminClientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     const s = getSession();
     if (!s) return (window.location.href = '/login');
     if (s.user.role !== 'admin') return (window.location.href = '/seller');
 
     try {
-      const meRes: any = await apiFetch('/api/users/me');
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
       const url = statusFilter
         ? `/api/companies/${meRes.company_id}/clients?status=${statusFilter}&limit=50`
         : `/api/companies/${meRes.company_id}/clients?limit=50`;
-      const res: any = await apiFetch(url);
+      const res = await apiFetch<ApiListResponse<Client>>(url, { token: s.access_token });
       setClients(res.data ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
     }
-  }
+  }, [statusFilter]);
 
   useEffect(() => {
-    load();
-  }, [statusFilter]);
+    void load();
+  }, [load]);
 
   async function updateClientStatus(clientId: string, newStatus: 'prospect' | 'client') {
     const s = getSession();
     if (!s) return;
     setError(null);
     try {
-      const meRes: any = await apiFetch('/api/users/me');
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
       await apiFetch(`/api/companies/${meRes.company_id}/clients/${clientId}`, {
         method: 'PATCH',
+        token: s.access_token,
         body: JSON.stringify({ status: newStatus }),
       });
       await load();
@@ -56,9 +58,10 @@ export default function AdminClientsPage() {
     setLoading(true);
     setError(null);
     try {
-      const meRes: any = await apiFetch('/api/users/me');
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
       await apiFetch(`/api/companies/${meRes.company_id}/clients`, {
         method: 'POST',
+        token: s.access_token,
         body: JSON.stringify({
           name,
           email: email || undefined,
@@ -144,9 +147,7 @@ export default function AdminClientsPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Lista ({clients.length})
-          </h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Lista ({clients.length})</h2>
           <div className="mt-3 grid gap-3">
             {clients.map((c) => (
               <div key={c.id} className="flex items-center justify-between rounded-xl border p-4 dark:border-zinc-800">
@@ -156,7 +157,7 @@ export default function AdminClientsPage() {
                     <span className="text-zinc-600 dark:text-zinc-400">{c.status}</span>
                   </div>
                   <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    {c.email ?? '—'} · {c.phone ?? '—'}
+                    {c.email ?? 'â€”'} Â· {c.phone ?? 'â€”'}
                   </div>
                 </div>
                 <div className="flex gap-2">

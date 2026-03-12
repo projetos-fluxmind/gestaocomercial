@@ -55,6 +55,7 @@ salesRouter.get('/companies/:companyId/sales', requireAuth, async (req, res, nex
 });
 
 salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, next) => {
+  const client = await pool.connect();
   try {
     const companyId = req.params.companyId;
     if (companyId !== req.auth!.company_id)
@@ -62,23 +63,31 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
 
     const body = createSaleSchema.parse(req.body);
 
+    await client.query('BEGIN');
+
     // valida plan pertence ao tenant
-    const planRes = await pool.query(
+    const planRes = await client.query(
       'select id, company_id, commission_rules from plans where id = $1 and company_id = $2 and is_active = true',
       [body.plan_id, companyId]
     );
-    if (!planRes.rowCount) return res.status(404).json({ code: 'NOT_FOUND', message: 'Plano não encontrado' });
+    if (!planRes.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Plano não encontrado' });
+    }
 
     // valida vehicle pertence ao tenant
-    const vehRes = await pool.query('select id from vehicles where id = $1 and company_id = $2', [
+    const vehRes = await client.query('select id from vehicles where id = $1 and company_id = $2', [
       body.vehicle_id,
       companyId,
     ]);
-    if (!vehRes.rowCount) return res.status(404).json({ code: 'NOT_FOUND', message: 'Veículo não encontrado' });
+    if (!vehRes.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Veículo não encontrado' });
+    }
 
     const closedAt = body.closed_at ? new Date(body.closed_at) : body.status === 'closed' ? new Date() : null;
 
-    const saleInsert = await pool.query(
+    const saleInsert = await client.query(
       `insert into sales (company_id, salesperson_id, vehicle_id, plan_id, value, status, closed_at, metadata)
        values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
        returning id, company_id, salesperson_id, plan_id, value, status, created_at, closed_at`,
@@ -94,7 +103,7 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
       ]
     );
 
-    const sale = saleInsert.rows[0];
+    const sale = saleInsert.rows[0]!;
 
     let commission: any = null;
     if (sale.status === 'closed') {
@@ -115,7 +124,7 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
         }
       );
 
-      const commissionRes = await pool.query(
+      const commissionRes = await client.query(
         `insert into commissions (company_id, sale_id, salesperson_id, amount, rules_applied, status)
          values ($1, $2, $3, $4, $5::jsonb, 'pending')
          on conflict (sale_id) do update set
@@ -133,15 +142,19 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
       monthStart.setUTCHours(0, 0, 0, 0);
       const monthEnd = new Date(monthStart);
       monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
-      const salesThisMonthRes = await pool.query(
+
+      const salesThisMonthRes = await client.query(
         `select count(*)::int as c from sales where company_id = $1 and salesperson_id = $2 and status = 'closed' and closed_at >= $3 and closed_at < $4`,
         [companyId, sale.salesperson_id, monthStart, monthEnd]
       );
-      const firstSaleRes = await pool.query(
+      const firstSaleRes = await client.query(
         `select count(*)::int as c from sales where company_id = $1 and salesperson_id = $2 and status = 'closed'`,
         [companyId, sale.salesperson_id]
       );
+
       const alreadyUnlocked = await getUnlockedCodes(companyId, sale.salesperson_id);
+      
+      // Nota: runUnlockCheck e updateGoalProgressOnSale devem idealmente aceitar um client para transação
       await runUnlockCheck({
         company_id: companyId,
         user_id: sale.salesperson_id,
@@ -158,11 +171,15 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
       );
     }
 
+    await client.query('COMMIT');
     return res.status(201).json({ sale, commission });
   } catch (e) {
+    if (client) await client.query('ROLLBACK');
     if (e instanceof z.ZodError)
       return res.status(422).json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details: e.flatten() });
     next(e);
+  } finally {
+    client.release();
   }
 });
 

@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, Plan, UserMe, Vehicle } from '@/lib/types';
 
 export default function SellerSalesPage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [plans, setPlans] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [planId, setPlanId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [value, setValue] = useState('1000');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,15 +23,15 @@ export default function SellerSalesPage() {
       if (s.user.role !== 'salesperson') return (window.location.href = '/admin');
 
       try {
-        const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
+        const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
         setCompanyId(meRes.company_id);
 
-        const plansRes: any = await apiFetch(`/api/companies/${meRes.company_id}/plans`, {
+        const plansRes = await apiFetch<ApiListResponse<Plan>>(`/api/companies/${meRes.company_id}/plans`, {
           token: s.access_token,
         });
         setPlans(plansRes.data ?? []);
 
-        const vehRes: any = await apiFetch(`/api/companies/${meRes.company_id}/vehicles`, {
+        const vehRes = await apiFetch<ApiListResponse<Vehicle>>(`/api/companies/${meRes.company_id}/vehicles`, {
           token: s.access_token,
         });
         setVehicles(vehRes.data ?? []);
@@ -47,7 +48,7 @@ export default function SellerSalesPage() {
     setError(null);
     setResult(null);
     try {
-      const res: any = await apiFetch(`/api/companies/${companyId}/sales`, {
+      const res = await apiFetch<unknown>(`/api/companies/${companyId}/sales`, {
         method: 'POST',
         token: s.access_token,
         body: JSON.stringify({
@@ -71,9 +72,7 @@ export default function SellerSalesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Registrar venda</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Fecha uma venda e gera comissão automaticamente.
-            </p>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Fecha uma venda e gera comissÃ£o automaticamente.</p>
           </div>
           <button
             className="rounded-xl border bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -95,7 +94,7 @@ export default function SellerSalesPage() {
                 value={planId}
                 onChange={(e) => setPlanId(e.target.value)}
               >
-                <option value="">Selecione…</option>
+                <option value="">Selecioneâ€¦</option>
                 {plans.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -105,16 +104,16 @@ export default function SellerSalesPage() {
             </label>
 
             <label className="grid gap-1">
-              <span className="text-sm font-medium">Veículo</span>
+              <span className="text-sm font-medium">VeÃ­culo</span>
               <select
                 className="h-11 rounded-xl border px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
               >
-                <option value="">Selecione…</option>
+                <option value="">Selecioneâ€¦</option>
                 {vehicles.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.brand ?? '—'} {v.model ?? ''} ({v.id.slice(0, 8)}…)
+                    {v.brand ?? 'â€”'} {v.model ?? ''} ({v.id.slice(0, 8)}â€¦)
                   </option>
                 ))}
               </select>
@@ -137,7 +136,7 @@ export default function SellerSalesPage() {
               disabled={!planId || !vehicleId || loading}
               className="h-11 rounded-xl bg-black px-4 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-black"
             >
-              {loading ? 'Enviando…' : 'Registrar venda'}
+              {loading ? 'Enviandoâ€¦' : 'Registrar venda'}
             </button>
           </div>
         </div>
@@ -160,4 +159,3 @@ export default function SellerSalesPage() {
     </div>
   );
 }
-

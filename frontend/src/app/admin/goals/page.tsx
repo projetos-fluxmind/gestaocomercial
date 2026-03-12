@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, CompanyUser, Goal, GoalTargetType, UserMe } from '@/lib/types';
 
 export default function AdminGoalsPage() {
-  const [goals, setGoals] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [users, setUsers] = useState<CompanyUser[]>([]);
   const [title, setTitle] = useState('');
-  const [targetType, setTargetType] = useState<'revenue' | 'count' | 'conversion'>('revenue');
+  const [targetType, setTargetType] = useState<GoalTargetType>('revenue');
   const [targetValue, setTargetValue] = useState('');
   const [salespersonId, setSalespersonId] = useState('');
   const [periodStart, setPeriodStart] = useState('');
@@ -22,20 +23,20 @@ export default function AdminGoalsPage() {
     if (s.user.role !== 'admin') return (window.location.href = '/seller');
 
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-      const [goalsRes, usersRes]: any[] = await Promise.all([
-        apiFetch(`/api/companies/${meRes.company_id}/goals`, { token: s.access_token }),
-        apiFetch(`/api/companies/${meRes.company_id}/users`, { token: s.access_token }),
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
+      const [goalsRes, usersRes] = await Promise.all([
+        apiFetch<ApiListResponse<Goal>>(`/api/companies/${meRes.company_id}/goals`, { token: s.access_token }),
+        apiFetch<ApiListResponse<CompanyUser>>(`/api/companies/${meRes.company_id}/users`, { token: s.access_token }),
       ]);
       setGoals(goalsRes.data ?? []);
-      setUsers((usersRes.data ?? []).filter((u: any) => u.role === 'salesperson'));
+      setUsers((usersRes.data ?? []).filter((u) => u.role === 'salesperson'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
     }
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   async function createGoal() {
@@ -44,7 +45,7 @@ export default function AdminGoalsPage() {
     setLoading(true);
     setError(null);
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
       await apiFetch(`/api/companies/${meRes.company_id}/goals`, {
         method: 'POST',
         token: s.access_token,
@@ -74,9 +75,7 @@ export default function AdminGoalsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Metas</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Crie e acompanhe metas por vendedor.
-            </p>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Crie e acompanhe metas por vendedor.</p>
           </div>
           <button
             className="rounded-xl border bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -94,7 +93,7 @@ export default function AdminGoalsPage() {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <input
               className="h-11 rounded-xl border px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
-              placeholder="Título"
+              placeholder="TÃ­tulo"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -103,7 +102,7 @@ export default function AdminGoalsPage() {
               value={salespersonId}
               onChange={(e) => setSalespersonId(e.target.value)}
             >
-              <option value="">Vendedor…</option>
+              <option value="">Vendedorâ€¦</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.full_name}
@@ -113,11 +112,18 @@ export default function AdminGoalsPage() {
             <select
               className="h-11 rounded-xl border px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
               value={targetType}
-              onChange={(e) => setTargetType(e.target.value as any)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'revenue' || v === 'count' || v === 'conversion') {
+                  setTargetType(v);
+                  return;
+                }
+                setTargetType(v as GoalTargetType);
+              }}
             >
               <option value="revenue">Receita</option>
               <option value="count">Quantidade</option>
-              <option value="conversion">Conversão</option>
+              <option value="conversion">ConversÃ£o</option>
             </select>
             <input
               className="h-11 rounded-xl border px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
@@ -149,9 +155,7 @@ export default function AdminGoalsPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Lista ({goals.length})
-          </h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Lista ({goals.length})</h2>
           <div className="mt-3 grid gap-3">
             {goals.map((g) => (
               <div key={g.id} className="rounded-xl border p-4 dark:border-zinc-800">
@@ -160,7 +164,7 @@ export default function AdminGoalsPage() {
                   <span className="text-zinc-600 dark:text-zinc-400">{g.status}</span>
                 </div>
                 <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  {g.target_type} · {g.period_start} → {g.period_end} · atual: {g.current_value}
+                  {g.target_type} Â· {g.period_start} â†’ {g.period_end} Â· atual: {g.current_value}
                 </div>
               </div>
             ))}

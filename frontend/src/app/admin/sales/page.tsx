@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, Sale, UserMe } from '@/lib/types';
 
 export default function AdminSalesPage() {
-  const [sales, setSales] = useState<any[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,8 +16,8 @@ export default function AdminSalesPage() {
       if (s.user.role !== 'admin') return (window.location.href = '/seller');
 
       try {
-        const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-        const res: any = await apiFetch(`/api/companies/${meRes.company_id}/sales`, {
+        const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
+        const res = await apiFetch<ApiListResponse<Sale>>(`/api/companies/${meRes.company_id}/sales`, {
           token: s.access_token,
         });
         setSales(res.data ?? []);
@@ -50,9 +51,7 @@ export default function AdminSalesPage() {
         {error ? <p className="mt-6 text-sm text-red-600">{error}</p> : null}
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Total ({sales.length})
-          </h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total ({sales.length})</h2>
           <div className="mt-3 grid gap-3">
             {sales.map((s) => (
               <div key={s.id} className="rounded-xl border p-4 dark:border-zinc-800">
@@ -60,9 +59,7 @@ export default function AdminSalesPage() {
                   <div className="font-medium">R$ {Number(s.value).toFixed(2)}</div>
                   <div className="text-zinc-600 dark:text-zinc-400">{s.status}</div>
                 </div>
-                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  sale_id: {s.id}
-                </div>
+                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">sale_id: {s.id}</div>
               </div>
             ))}
           </div>
@@ -77,4 +74,3 @@ export default function AdminSalesPage() {
     </div>
   );
 }
-

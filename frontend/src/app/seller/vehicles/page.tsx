@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, Client, UserMe, Vehicle } from '@/lib/types';
 
 export default function SellerVehiclesPage() {
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState('');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
@@ -21,10 +22,10 @@ export default function SellerVehiclesPage() {
     if (s.user.role !== 'salesperson') return (window.location.href = '/admin');
 
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-      const [vehRes, clientsRes]: any[] = await Promise.all([
-        apiFetch(`/api/companies/${meRes.company_id}/vehicles?limit=50`, { token: s.access_token }),
-        apiFetch(`/api/companies/${meRes.company_id}/clients?limit=100`, { token: s.access_token }),
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
+      const [vehRes, clientsRes] = await Promise.all([
+        apiFetch<ApiListResponse<Vehicle>>(`/api/companies/${meRes.company_id}/vehicles?limit=50`, { token: s.access_token }),
+        apiFetch<ApiListResponse<Client>>(`/api/companies/${meRes.company_id}/clients?limit=100`, { token: s.access_token }),
       ]);
       setVehicles(vehRes.data ?? []);
       setClients(clientsRes.data ?? []);
@@ -34,7 +35,7 @@ export default function SellerVehiclesPage() {
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   async function createVehicle() {
@@ -43,7 +44,7 @@ export default function SellerVehiclesPage() {
     setLoading(true);
     setError(null);
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
       await apiFetch(`/api/companies/${meRes.company_id}/vehicles`, {
         method: 'POST',
         token: s.access_token,
@@ -73,10 +74,8 @@ export default function SellerVehiclesPage() {
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Veículos</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Cadastre veículos vinculados a clientes.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">VeÃ­culos</h1>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Cadastre veÃ­culos vinculados a clientes.</p>
           </div>
           <button
             className="rounded-xl border bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -90,7 +89,7 @@ export default function SellerVehiclesPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Cadastrar veículo</h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Cadastrar veÃ­culo</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <select
               className="h-11 rounded-xl border px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
@@ -140,17 +139,15 @@ export default function SellerVehiclesPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Lista ({vehicles.length})
-          </h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Lista ({vehicles.length})</h2>
           <div className="mt-3 grid gap-3">
             {vehicles.map((v) => (
               <div key={v.id} className="rounded-xl border p-4 dark:border-zinc-800">
                 <div className="text-sm font-medium">
-                  {v.brand ?? '—'} {v.model ?? ''} {v.year ?? ''}
+                  {v.brand ?? 'â€”'} {v.model ?? ''} {v.year ?? ''}
                 </div>
                 <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  Placa: {v.plate ?? '—'} · client_id: {v.client_id?.slice(0, 8)}…
+                  Placa: {v.plate ?? 'â€”'} Â· client_id: {v.client_id?.slice(0, 8)}â€¦
                 </div>
               </div>
             ))}

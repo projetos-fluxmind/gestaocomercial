@@ -5,7 +5,7 @@ import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
 
 export default function AdminDashboard() {
-  const [me, setMe] = useState<any>(null);
+  const [me, setMe] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    apiFetch('/api/users/me', { token: s.access_token })
+    apiFetch<unknown>('/api/users/me', { token: s.access_token })
       .then(setMe)
       .catch((e) => setError(e instanceof Error ? e.message : 'Falha ao carregar'));
   }, []);
@@ -41,23 +41,23 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <Card title="Vendas (mês)" value="—" />
-          <Card title="Receita (mês)" value="—" />
-          <Card title="Conversão" value="—" />
+          <Card title="Vendas (mÃªs)" value="â€”" />
+          <Card title="Receita (mÃªs)" value="â€”" />
+          <Card title="ConversÃ£o" value="â€”" />
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
           <Nav href="/admin/plans" title="Planos" />
           <Nav href="/admin/sales" title="Vendas" />
           <Nav href="/admin/goals" title="Metas" />
-          <Nav href="/admin/commissions" title="Comissões" />
+          <Nav href="/admin/commissions" title="ComissÃµes" />
           <Nav href="/admin/ranking" title="Ranking" />
           <Nav href="/admin/analytics" title="Analytics" />
           <Nav href="/admin/clients" title="Clientes" />
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Sessão</h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">SessÃ£o</h2>
           {error ? (
             <p className="mt-2 text-sm text-red-600">{error}</p>
           ) : (
@@ -90,4 +90,3 @@ function Nav(props: { href: string; title: string }) {
     </a>
   );
 }
-

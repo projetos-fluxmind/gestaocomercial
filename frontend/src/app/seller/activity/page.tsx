@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { Activity, ApiListResponse, UserMe } from '@/lib/types';
 
 export default function SellerActivityPage() {
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [entityType, setEntityType] = useState('client');
   const [action, setAction] = useState('view');
   const [entityId, setEntityId] = useState('');
@@ -18,8 +19,8 @@ export default function SellerActivityPage() {
     if (s.user.role !== 'salesperson') return (window.location.href = '/admin');
 
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-      const res: any = await apiFetch(`/api/companies/${meRes.company_id}/activities`, {
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
+      const res = await apiFetch<ApiListResponse<Activity>>(`/api/companies/${meRes.company_id}/activities`, {
         token: s.access_token,
       });
       setActivities(res.data ?? []);
@@ -29,7 +30,7 @@ export default function SellerActivityPage() {
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   async function logActivity() {
@@ -38,7 +39,7 @@ export default function SellerActivityPage() {
     setLoading(true);
     setError(null);
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
+      const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
       await apiFetch(`/api/companies/${meRes.company_id}/activities`, {
         method: 'POST',
         token: s.access_token,
@@ -64,9 +65,7 @@ export default function SellerActivityPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Atividades</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Registre e veja seu histórico de atividades.
-            </p>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Registre e veja seu histÃ³rico de atividades.</p>
           </div>
           <button
             className="rounded-xl border bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -90,7 +89,7 @@ export default function SellerActivityPage() {
             />
             <input
               className="h-11 rounded-xl border px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
-              placeholder="Ação (ex: view, call)"
+              placeholder="AÃ§Ã£o (ex: view, call)"
               value={action}
               onChange={(e) => setAction(e.target.value)}
             />
@@ -112,9 +111,7 @@ export default function SellerActivityPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Histórico ({activities.length})
-          </h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">HistÃ³rico ({activities.length})</h2>
           <div className="mt-3 grid gap-3">
             {activities.map((a) => (
               <div key={a.id} className="rounded-xl border p-4 dark:border-zinc-800">
@@ -124,7 +121,7 @@ export default function SellerActivityPage() {
                 </div>
                 <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
                   {new Date(a.created_at).toLocaleString()}
-                  {a.entity_id ? ` · ${a.entity_id}` : ''}
+                  {a.entity_id ? ` Â· ${a.entity_id}` : ''}
                 </div>
               </div>
             ))}

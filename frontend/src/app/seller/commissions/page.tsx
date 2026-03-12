@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, Commission, UserMe } from '@/lib/types';
 
 export default function SellerCommissionsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Commission[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,8 +16,8 @@ export default function SellerCommissionsPage() {
       if (s.user.role !== 'salesperson') return (window.location.href = '/admin');
 
       try {
-        const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-        const res: any = await apiFetch(`/api/companies/${meRes.company_id}/commissions`, {
+        const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
+        const res = await apiFetch<ApiListResponse<Commission>>(`/api/companies/${meRes.company_id}/commissions`, {
           token: s.access_token,
         });
         setData(res.data ?? []);
@@ -31,10 +32,8 @@ export default function SellerCommissionsPage() {
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Minhas comissões</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Pendentes e pagas.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">Minhas comissÃµes</h1>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Pendentes e pagas.</p>
           </div>
           <button
             className="rounded-xl border bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -50,9 +49,7 @@ export default function SellerCommissionsPage() {
         {error ? <p className="mt-6 text-sm text-red-600">{error}</p> : null}
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Total ({data.length})
-          </h2>
+          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total ({data.length})</h2>
           <div className="mt-3 grid gap-3">
             {data.map((c) => (
               <div key={c.id} className="rounded-xl border p-4 dark:border-zinc-800">
@@ -60,9 +57,7 @@ export default function SellerCommissionsPage() {
                   <div className="font-medium">R$ {Number(c.amount).toFixed(2)}</div>
                   <div className="text-zinc-600 dark:text-zinc-400">{c.status}</div>
                 </div>
-                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  sale_id: {c.sale_id}
-                </div>
+                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">sale_id: {c.sale_id}</div>
               </div>
             ))}
           </div>
@@ -77,4 +72,3 @@ export default function SellerCommissionsPage() {
     </div>
   );
 }
-

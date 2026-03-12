@@ -3,18 +3,17 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { clearSession, getSession } from '@/lib/auth';
+import type { ApiListResponse, LeaderboardEntry, UserMe } from '@/lib/types';
 
 export default function SellerRankingPage() {
-  const [data, setData] = useState<any[]>([]);
-  const [periodKey, setPeriodKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [data, setData] = useState<LeaderboardEntry[]>([]);
+  const [periodKey, setPeriodKey] = useState(() => {
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
-    setPeriodKey((k) => k || `${y}-${m}`);
-  }, []);
+    return `${y}-${m}`;
+  });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!periodKey) return;
@@ -24,8 +23,8 @@ export default function SellerRankingPage() {
       if (s.user.role !== 'salesperson') return (window.location.href = '/admin');
 
       try {
-        const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-        const res: any = await apiFetch(
+        const meRes = await apiFetch<UserMe>('/api/users/me', { token: s.access_token });
+        const res = await apiFetch<ApiListResponse<LeaderboardEntry>>(
           `/api/companies/${meRes.company_id}/leaderboard?period_type=month&period_key=${encodeURIComponent(periodKey)}`,
           { token: s.access_token }
         );
@@ -43,7 +42,7 @@ export default function SellerRankingPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Ranking</h1>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Posição no leaderboard do mês.
+              PosiÃ§Ã£o no leaderboard do mÃªs.
             </p>
           </div>
           <button
@@ -70,7 +69,7 @@ export default function SellerRankingPage() {
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            Posições ({data.length})
+            PosiÃ§Ãµes ({data.length})
           </h2>
           <div className="mt-3 grid gap-3">
             {data.map((r) => (
