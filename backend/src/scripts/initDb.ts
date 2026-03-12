@@ -2,6 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from 'pg';
 import dotenv from 'dotenv';
+import dns from 'node:dns';
+
+dns.setDefaultResultOrder('ipv4first');
 
 dotenv.config({ path: path.join(process.cwd(), 'backend', '.env') });
 dotenv.config(); // Fallback para se já estiver na pasta backend

@@ -1,5 +1,12 @@
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+import path from 'path';
+import dns from 'node:dns';
+
+dns.setDefaultResultOrder('ipv4first');
+dotenv.config({ path: path.join(process.cwd(), '.env') });
+dotenv.config(); // fallback se já estiver na pasta backend
 
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL;
