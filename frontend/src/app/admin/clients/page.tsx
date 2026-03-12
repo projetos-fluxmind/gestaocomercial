@@ -19,11 +19,11 @@ export default function AdminClientsPage() {
     if (s.user.role !== 'admin') return (window.location.href = '/seller');
 
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
+      const meRes: any = await apiFetch('/api/users/me');
       const url = statusFilter
         ? `/api/companies/${meRes.company_id}/clients?status=${statusFilter}&limit=50`
         : `/api/companies/${meRes.company_id}/clients?limit=50`;
-      const res: any = await apiFetch(url, { token: s.access_token });
+      const res: any = await apiFetch(url);
       setClients(res.data ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
@@ -34,16 +34,31 @@ export default function AdminClientsPage() {
     load();
   }, [statusFilter]);
 
+  async function updateClientStatus(clientId: string, newStatus: 'prospect' | 'client') {
+    const s = getSession();
+    if (!s) return;
+    setError(null);
+    try {
+      const meRes: any = await apiFetch('/api/users/me');
+      await apiFetch(`/api/companies/${meRes.company_id}/clients/${clientId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro');
+    }
+  }
+
   async function createClient() {
     const s = getSession();
     if (!s) return;
     setLoading(true);
     setError(null);
     try {
-      const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
+      const meRes: any = await apiFetch('/api/users/me');
       await apiFetch(`/api/companies/${meRes.company_id}/clients`, {
         method: 'POST',
-        token: s.access_token,
         body: JSON.stringify({
           name,
           email: email || undefined,
@@ -134,13 +149,34 @@ export default function AdminClientsPage() {
           </h2>
           <div className="mt-3 grid gap-3">
             {clients.map((c) => (
-              <div key={c.id} className="rounded-xl border p-4 dark:border-zinc-800">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{c.name}</span>
-                  <span className="text-zinc-600 dark:text-zinc-400">{c.status}</span>
+              <div key={c.id} className="flex items-center justify-between rounded-xl border p-4 dark:border-zinc-800">
+                <div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{c.name}</span>
+                    <span className="text-zinc-600 dark:text-zinc-400">{c.status}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    {c.email ?? '—'} · {c.phone ?? '—'}
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  {c.email ?? '—'} · {c.phone ?? '—'}
+                <div className="flex gap-2">
+                  {c.status === 'prospect' ? (
+                    <button
+                      type="button"
+                      className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700"
+                      onClick={() => updateClientStatus(c.id, 'client')}
+                    >
+                      Virar cliente
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600"
+                      onClick={() => updateClientStatus(c.id, 'prospect')}
+                    >
+                      Voltar prospect
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

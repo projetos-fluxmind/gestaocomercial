@@ -8,23 +8,36 @@ export default function AdminCommissionsPage() {
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      const s = getSession();
-      if (!s) return (window.location.href = '/login');
-      if (s.user.role !== 'admin') return (window.location.href = '/seller');
+  async function load() {
+    const s = getSession();
+    if (!s) return (window.location.href = '/login');
+    if (s.user.role !== 'admin') return (window.location.href = '/seller');
+    try {
+      const meRes: any = await apiFetch('/api/users/me');
+      const res: any = await apiFetch(`/api/companies/${meRes.company_id}/commissions`);
+      setData(res.data ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro');
+    }
+  }
 
-      try {
-        const meRes: any = await apiFetch('/api/users/me', { token: s.access_token });
-        const res: any = await apiFetch(`/api/companies/${meRes.company_id}/commissions`, {
-          token: s.access_token,
-        });
-        setData(res.data ?? []);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro');
-      }
-    })();
+  useEffect(() => {
+    load();
   }, []);
+
+  async function markAsPaid(commissionId: string) {
+    setError(null);
+    try {
+      const meRes: any = await apiFetch('/api/users/me');
+      await apiFetch(`/api/companies/${meRes.company_id}/commissions/${commissionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'paid' }),
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 p-6 dark:bg-black">
@@ -55,14 +68,25 @@ export default function AdminCommissionsPage() {
           </h2>
           <div className="mt-3 grid gap-3">
             {data.map((c) => (
-              <div key={c.id} className="rounded-xl border p-4 dark:border-zinc-800">
-                <div className="flex justify-between text-sm">
-                  <div className="font-medium">R$ {Number(c.amount).toFixed(2)}</div>
-                  <div className="text-zinc-600 dark:text-zinc-400">{c.status}</div>
+              <div key={c.id} className="flex items-center justify-between rounded-xl border p-4 dark:border-zinc-800">
+                <div>
+                  <div className="flex justify-between text-sm">
+                    <div className="font-medium">R$ {Number(c.amount).toFixed(2)}</div>
+                    <div className="text-zinc-600 dark:text-zinc-400">{c.status}</div>
+                  </div>
+                  <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    sale_id: {c.sale_id}
+                  </div>
                 </div>
-                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  sale_id: {c.sale_id}
-                </div>
+                {c.status === 'pending' && (
+                  <button
+                    type="button"
+                    className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                    onClick={() => markAsPaid(c.id)}
+                  >
+                    Marcar como pago
+                  </button>
+                )}
               </div>
             ))}
           </div>

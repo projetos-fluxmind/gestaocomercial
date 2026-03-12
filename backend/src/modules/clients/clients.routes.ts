@@ -124,3 +124,48 @@ clientsRouter.post('/companies/:companyId/clients', requireAuth, async (req, res
   }
 });
 
+const updateClientSchema = z.object({
+  name: z.string().min(1).optional(),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  document: z.string().optional().nullable(),
+  status: z.enum(['prospect', 'client']).optional(),
+});
+
+clientsRouter.patch('/companies/:companyId/clients/:id', requireAuth, async (req, res, next) => {
+  try {
+    const companyId = req.params.companyId;
+    const clientId = String(req.params.id ?? '');
+    if (companyId !== req.auth!.company_id) return res.status(403).json({ code: 'FORBIDDEN', message: 'Tenant inválido' });
+
+    const body = updateClientSchema.parse(req.body);
+    const updates: string[] = [];
+    const values: any[] = [companyId, clientId];
+    let idx = 3;
+    if (body.name !== undefined) { updates.push(`name = $${idx++}`); values.push(body.name); }
+    if (body.email !== undefined) { updates.push(`email = $${idx++}`); values.push(body.email); }
+    if (body.phone !== undefined) { updates.push(`phone = $${idx++}`); values.push(body.phone); }
+    if (body.document !== undefined) { updates.push(`document = $${idx++}`); values.push(body.document); }
+    if (body.status !== undefined) { updates.push(`status = $${idx++}`); values.push(body.status); }
+    if (updates.length === 0) return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Nenhum campo para atualizar' });
+
+    updates.push('updated_at = now()');
+    const result = await pool.query(
+      `update clients set ${updates.join(', ')} where company_id = $1 and id = $2
+       returning id, name, email, phone, document, status, created_by, created_at, updated_at`,
+      values
+    );
+    if (!result.rowCount) return res.status(404).json({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
+
+    let row = result.rows[0];
+    if (req.auth!.role === 'salesperson') {
+      const maskSet = await getClientIdsWithClosedSaleBySalesperson(companyId, req.auth!.user_id);
+      if (maskSet.has(clientId)) row = maskClientRow(row);
+    }
+    return res.json(row);
+  } catch (e) {
+    if (e instanceof z.ZodError) return res.status(422).json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details: e.flatten() });
+    next(e);
+  }
+});
+
