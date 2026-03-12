@@ -52,6 +52,8 @@ export default function AdminDashboard() {
           <Nav href="/admin/goals" title="Metas" />
           <Nav href="/admin/commissions" title="Comissões" />
           <Nav href="/admin/ranking" title="Ranking" />
+          <Nav href="/admin/analytics" title="Analytics" />
+          <Nav href="/admin/clients" title="Clientes" />
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">

@@ -47,10 +47,13 @@ export default function SellerDashboard() {
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
+          <Nav href="/seller/clients" title="Clientes" />
           <Nav href="/seller/sales" title="Registrar venda" />
+          <Nav href="/seller/vehicles" title="Veículos" />
           <Nav href="/seller/commissions" title="Comissões" />
           <Nav href="/seller/ranking" title="Ranking" />
           <Nav href="/seller/activity" title="Atividades" />
+          <Nav href="/seller/achievements" title="Conquistas" />
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">

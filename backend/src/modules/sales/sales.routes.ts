@@ -4,6 +4,7 @@ import { pool } from '../../db/pool';
 import { requireAuth } from '../../middleware/auth';
 import { calculateCommission } from '../../engines/commission-engine';
 import { getUnlockedCodes, runUnlockCheck } from '../gamification/achievements.service';
+import { updateGoalProgressOnSale } from '../goals/goals.service';
 
 export const salesRouter = Router();
 
@@ -148,6 +149,13 @@ salesRouter.post('/companies/:companyId/sales', requireAuth, async (req, res, ne
         sales_this_month: Number(salesThisMonthRes.rows[0].c ?? 0),
         is_first_sale_ever: Number(firstSaleRes.rows[0].c ?? 0) <= 1,
       });
+
+      await updateGoalProgressOnSale(
+        companyId,
+        sale.salesperson_id,
+        Number(sale.value),
+        closedAtDate
+      );
     }
 
     return res.status(201).json({ sale, commission });
